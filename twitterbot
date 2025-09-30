@@ -7,23 +7,23 @@ services:
     tty: true
     volumes:
       - /home/flerf/dockerapps/nextcloud/.nextcloud/data/flerf/files/TwitterImagesPost:/workspace/twitter_images
+      - /home/flerf/dockerapps/twitterpost/code:/workspace/twitter-bot   # <-- ADD THIS for persistent code!
     command: >
       bash -c "
         set -ex
         apt-get update &&
         apt-get install -y git wget curl nextcloud-desktop nextcloud-desktop-cmd nodejs cron &&
-        if [ ! -d /workspace/.git ]; then
+        if [ ! -d /workspace/twitter-bot/.git ]; then
             echo 'Cloning repository...';
-            git clone https://github.com/technosaurus-club/twitter-bot.git /workspace;
+            git clone https://github.com/technosaurus-club/twitter-bot.git /workspace/twitter-bot;
         else
             echo 'Repo already exists, skipping clone.';
         fi &&
-        echo 'Setting up Nextcloud sync...' &&
         echo 'Clone completed. Contents:' &&
-        ls -la /workspace &&
-        # Compose/host creates /workspace/twitter_images — don't mkdir it
+        ls -la /workspace/twitter-bot &&
+        echo 'Setting up Nextcloud sync...' &&
         cd /workspace &&
-        echo '0 */5 * * * /usr/bin/node /home/flerf/post_and_archive.js >/dev/null 2>&1' >> /tmp/mycron &&
+        echo '0 */5 * * * /usr/bin/node /workspace/twitter-bot/post_and_archive.js >/dev/null 2>&1' >> /tmp/mycron &&
         echo '*/5 * * * * nextcloudcmd -u flerf -p a123456789A --logdebug /workspace/twitter_images http://192.168.1.151:8080/remote.php/webdav/TwitterImagesPost && python3 /workspace/twitter-dl/twitter-dl.py /workspace/twitter_images/StuffToDl.txt && echo -n | curl -u \"flerf:a123456789A\" -T - \"http://192.168.1.151:8080/remote.php/webdav/TwitterImagesPost/StuffToDl.txt\" && echo \"\" > /workspace/twitter_images/StuffToDl.txt >/dev/null 2>&1' >> /tmp/mycron &&
         crontab /tmp/mycron &&
         service cron start &&
