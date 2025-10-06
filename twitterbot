@@ -7,7 +7,7 @@ services:
     tty: true
     volumes:
       - /home/flerf/dockerapps/nextcloud/.nextcloud/data/flerf/files/TwitterImagesPost:/workspace/twitter_images
-      - /home/flerf/dockerapps/twitterpost/code:/workspace/twitter-bot   # <-- ADD THIS for persistent code!
+#      - /home/flerf/dockerapps/twitterpost/code:/workspace/twitter-bot   # <-- ADD THIS for persistent code!
     command: >
       bash -c "
         set -ex
@@ -22,9 +22,15 @@ services:
         echo 'Clone completed. Contents:' &&
         ls -la /workspace/twitter-bot &&
         echo 'Setting up Nextcloud sync...' &&
+        cd /workspace/twitter-bot/puppeteer &&
+        chmod +x puppeteer-install.sh  &&
+        ./puppeteer-install.sh &&
+        cd /workspace/twitter-bot/twitter-dl &&
+        chmod +x install_local_tooling.sh &&
+        ./install_local_tooling.sh &&
         cd /workspace &&
-        echo '0 */5 * * * /usr/bin/node /workspace/twitter-bot/post_and_archive.js >/dev/null 2>&1' >> /tmp/mycron &&
-        echo '*/5 * * * * nextcloudcmd -u flerf -p a123456789A --logdebug /workspace/twitter_images http://192.168.1.151:8080/remote.php/webdav/TwitterImagesPost && python3 /workspace/twitter-dl/twitter-dl.py /workspace/twitter_images/StuffToDl.txt && echo -n | curl -u \"flerf:a123456789A\" -T - \"http://192.168.1.151:8080/remote.php/webdav/TwitterImagesPost/StuffToDl.txt\" && echo \"\" > /workspace/twitter_images/StuffToDl.txt >/dev/null 2>&1' >> /tmp/mycron &&
+        echo '0 */5 * * * /usr/bin/xvfb-run -a node post_and_archive_improved.js >/dev/null 2>&1' >> /tmp/mycron &&
+        echo '*/5 * * * * nextcloudcmd -u flerf -p a123456789A --logdebug /workspace/twitter_images http://100.107.222.38:8080/remote.php/webdav/TwitterImagesPost && python3 /workspace/twitter-bot/twitter-dl/twitter-dl.py /workspace/twitter_images/StuffToDl.txt && echo -n | curl -u \"flerf:a123456789A\" -T - \"http://100.107.222.38:8080/remote.php/webdav/TwitterImagesPost/StuffToDl.txt\" && echo \"\" > /workspace/twitter_images/StuffToDl.txt >/dev/null 2>&1' >> /tmp/mycron &&
         crontab /tmp/mycron &&
         service cron start &&
         bash
